@@ -53,7 +53,7 @@ if prompt := st.chat_input("Ketik pesanmu di sini..."):
             role = "user" if m["role"] == "user" else "model"
             full_chat.append({"role": role, "parts": [m["content"]]})
 
-        model = genai.GenerativeModel('gemini-1.0-pro')
+        model = genai.GenerativeModel('gemini-2.5-flash')
         response = model.generate_content(full_chat)
         
         # 4. Tampilkan Balasan
