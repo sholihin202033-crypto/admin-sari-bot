@@ -20,9 +20,8 @@ except Exception as e:
 # --- MEMORI CHAT ---
 if "messages" not in st.session_state:
     st.session_state.messages = [
-        {"role": "assistant", "content": "Halo! Saya Sari. Mau cuci sofa atau kasur? 😊"}
+       {"role": "assistant", "content": "Hai Kak! Saya Sari. Mau cuci sofa atau kasur? 😊"} 
     ]
-
 # --- TAMPILKAN CHAT ---
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
