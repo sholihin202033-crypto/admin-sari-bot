@@ -1,10 +1,11 @@
 import streamlit as st
 import google.generativeai as genai
+from PIL import Image # Tambahan library untuk proses gambar
 
 # --- JUDUL WEBSITE ---
-st.set_page_config(page_title="Admin Sari", page_icon="✨")
+st.set_page_config(page_title="Admin Sari Vision", page_icon="✨")
 st.title("✨ Admin Sari - Berkilau Clean")
-st.write("Silakan tanya harga atau layanan kami di bawah ini!")
+st.write("Silakan tanya harga, atau kirim foto sofa/kasur kotor untuk dicek!")
 
 # --- KONFIGURASI KUNCI (Auto-Detect) ---
 try:
@@ -20,24 +21,45 @@ except Exception as e:
 # --- MEMORI CHAT ---
 if "messages" not in st.session_state:
     st.session_state.messages = [
-       {"role": "assistant", "content": "Hai Kak! Saya Sari. Mau cuci sofa atau kasur? 😊"} 
+       {"role": "assistant", "content": "Hai Kak! Saya Sari. Ada yang bisa saya bantu? Kalau ada foto sofa yang kotor, boleh dikirim ya biar saya cek 😊"} 
     ]
+
 # --- TAMPILKAN CHAT ---
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
 
+# --- KOLOM UPLOAD GAMBAR (BARU) ---
+# Menggunakan expander agar tampilan tetap rapi
+with st.expander("📸 Klik di sini untuk Upload Foto (Sofa/Kasur/Noda)", expanded=False):
+    uploaded_file = st.file_uploader("Pilih gambar...", type=["jpg", "jpeg", "png"])
+    
 # --- INPUT USER ---
 if prompt := st.chat_input("Ketik pesanmu di sini..."):
-    # 1. Simpan pesan user
-    st.session_state.messages.append({"role": "user", "content": prompt})
+    
+    # 1. Tampilkan & Simpan Pesan User
     with st.chat_message("user"):
         st.write(prompt)
+        image_data = None
+        if uploaded_file:
+            # Jika ada gambar, tampilkan di chat dan siapkan untuk AI
+            image_data = Image.open(uploaded_file)
+            st.image(image_data, caption="Foto dikirim", width=300)
+    
+    # Simpan history (Text saja agar hemat memori)
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    if uploaded_file:
+        st.session_state.messages.append({"role": "user", "content": "[User mengirimkan gambar]"})
 
-    # 2. Siapkan Data/SOP
+    # 2. Siapkan Data/SOP (Diupdate untuk instruksi Gambar)
     SOP_ADMIN = """
 PERAN: Kamu adalah Sari, Admin CS 'Berkilau Clean' (Nama: Sari).
 Sikap: Ramah, santai, solutif, selalu menggunakan kata 'Kak' dan emoji yang sopan (😊, 👍, 🙏).
+
+INSTRUKSI ANALISIS GAMBAR:
+- Jika user mengirim gambar, perhatikan kondisinya (noda, jenis bahan, atau tingkat kekotoran).
+- Berikan komentar empati seperti "Waduh, nodanya lumayan terlihat ya Kak" atau "Wah, ini bahan beludru ya Kak, butuh penanganan khusus."
+- Hubungkan kondisi gambar dengan layanan yang sesuai.
 
 DATA LENGKAP PRODUK DAN HARGA:
 1. CUCI SOFA:
@@ -47,29 +69,38 @@ DATA LENGKAP PRODUK DAN HARGA:
 2. CUCI KASUR:
    - Springbed (Semua Ukuran): Rp 200.000.
    - Kasur Busa/Latex: Rp 150.000.
-   - Keunggulan: Bebas Tungau, Kering 90% dalam 3 jam.
-3. DEEP CLEANING (PEMBERSIHAN TOTAL):
-   - Untuk Rumah Baru/Pindahan: Rp 50.000 / m2.
-   - Min. Order: 20 m2.
-4. PROMO AKTIF:
-   - Setiap booking di hari Senin-Rabu, dapat GRATIS 1 Pengharum Ruangan Premium.
+3. PROMO AKTIF:
+   - Booking Senin-Rabu GRATIS 1 Pengharum Ruangan.
 
 ATURAN CHAT:
-- Setelah memberikan informasi harga, selalu akhiri dengan pertanyaan Call-to-Action seperti: "Apakah Kakak mau langsung dijadwalkan?"
-- Jika pelanggan setuju/deal, minta data ini: "Mohon kirimkan data lengkap: (1) Alamat Lengkap, (2) Nama Kontak, (3) Nomor WA aktif. Agar tim kami bisa segera berangkat ya, Kak."
-- Jangan menjawab pertanyaan di luar layanan kebersihan.
+- Akhiri dengan Call-to-Action: "Apakah Kakak mau langsung dijadwalkan?"
+- Minta data alamat & WA jika deal.
 """
 
     # 3. Kirim ke AI
     try:
-        # Gabungkan SOP + Chat History
-        full_chat = [{"role": "user", "parts": [SOP_ADMIN]}]
-        for m in st.session_state.messages:
+        # A. Siapkan History Chat (Text Only dari masa lalu)
+        history_parts = [{"role": "user", "parts": [SOP_ADMIN]}]
+        
+        # Ambil pesan-pesan sebelumnya (kecuali yang barusan dikirim) untuk konteks
+        # Kita filter agar hanya teks yang masuk ke history loop sederhana ini
+        for m in st.session_state.messages[:-2 if uploaded_file else -1]:
             role = "user" if m["role"] == "user" else "model"
-            full_chat.append({"role": role, "parts": [m["content"]]})
+            history_parts.append({"role": role, "parts": [m["content"]]})
 
-        model = genai.GenerativeModel('gemini-2.5-flash')
-        response = model.generate_content(full_chat)
+        # B. Siapkan Pesan SAAT INI (Text + Gambar)
+        current_parts = [prompt]
+        if image_data:
+            current_parts.append(image_data) # Masukkan data gambar ke prompt
+        
+        history_parts.append({"role": "user", "parts": current_parts})
+
+        # Gunakan model 'gemini-1.5-flash' yang mendukung gambar (Vision)
+        # Note: 'gemini-2.5' belum rilis publik, jadi diganti ke 1.5 yg stabil
+        model = genai.GenerativeModel('gemini-1.5-flash') 
+        
+        with st.spinner('Sari sedang melihat pesan & fotomu...'):
+            response = model.generate_content(history_parts)
         
         # 4. Tampilkan Balasan
         bot_reply = response.text
