@@ -5,7 +5,7 @@ from PIL import Image
 # --- KONFIGURASI HALAMAN ---
 st.set_page_config(page_title="Admin Sari - Berkilau Clean", page_icon="✨", layout="wide")
 
-# --- CSS BIAR TAMPILAN CANTIK (Opsional) ---
+# --- CSS BIAR TAMPILAN CANTIK ---
 st.markdown("""
 <style>
     .stChatMessage {border-radius: 15px; padding: 10px;}
@@ -22,21 +22,21 @@ with st.sidebar:
     st.divider()
     
     st.subheader("📞 Kontak Darurat")
-    st.write("WA: 0812-3456-7890")
+    st.write("WA: 0812-3456-7890") # Ganti dengan nomor aslimu nanti
     st.write("IG: @berkilau.clean")
     
     st.divider()
     
     # Tombol Reset Chat
     if st.button("🔄 Mulai Chat Baru"):
-        st.session_state.messages = [] # Kosongkan memori
-        st.rerun() # Refresh halaman
+        st.session_state.messages = [] 
+        st.rerun() 
 
-# --- LOGIKA UTAMA ---
+# --- JUDUL UTAMA ---
 st.title("✨ Chat dengan Admin Sari")
 st.write("Kirim foto noda/sofa kamu, Sari akan bantu cek harganya!")
 
-# --- KUNCI API ---
+# --- KUNCI API (KONEKSI KE GOOGLE) ---
 try:
     if "GOOGLE_API_KEY" in st.secrets:
         genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
@@ -47,7 +47,7 @@ except Exception:
     st.warning("Menunggu kunci API...")
     st.stop()
 
-# --- SOP ADMIN & HARGA (DIPERTAJAM) ---
+# --- SOP ADMIN & HARGA ---
 SOP_ADMIN = """
 PERAN: Kamu adalah Sari, Admin CS 'Berkilau Clean'.
 SIKAP: Ramah, santai, solutif, panggil 'Kak', pakai emoji (😊).
@@ -81,7 +81,6 @@ for msg in st.session_state.messages:
         st.write(msg["content"])
 
 # --- INPUT USER (GAMBAR & TEKS) ---
-# Wadah input
 col1, col2 = st.columns([1, 4])
 with col1:
     with st.popover("📸 Upload Foto"):
@@ -103,37 +102,45 @@ if prompt or uploaded_file:
     msg_content = prompt if prompt else "[Mengirim foto]"
     st.session_state.messages.append({"role": "user", "content": msg_content})
 
-    # 2. Kirim ke AI
-    try:
-        # Gunakan model Gemini 2.5 Flash (Sesuai diagnosa tadi)
-        model = genai.GenerativeModel('gemini-2.5-flash')
-        
-        parts_to_send = [SOP_ADMIN]
-        if uploaded_file: parts_to_send.append(Image.open(uploaded_file))
-        if prompt: parts_to_send.append(prompt)
-        else: parts_to_send.append("Analisis gambar ini dan tawarkan jasa pembersihan yang cocok.")
+    # 2. SIAPKAN DATA UNTUK DIKIRIM KE AI
+    parts_to_send = [SOP_ADMIN]
+    if uploaded_file: parts_to_send.append(Image.open(uploaded_file))
+    if prompt: parts_to_send.append(prompt)
+    else: parts_to_send.append("Analisis gambar ini dan tawarkan jasa pembersihan yang cocok.")
 
+    # 3. KIRIM KE AI (DENGAN SISTEM BAN SEREP / AUTO-FIX)
+    bot_reply = ""
+    with st.chat_message("assistant"):
         with st.spinner("Sari sedang mengetik..."):
-            response = model.generate_content(parts_to_send)
-        
-        bot_reply = response.text
-        
-        # 3. Tampilkan Balasan AI
-        st.session_state.messages.append({"role": "assistant", "content": bot_reply})
-        with st.chat_message("assistant"):
+            try:
+                # OPSI 1: Coba pakai Mesin Utama (Paling Baru)
+                model = genai.GenerativeModel('gemini-2.5-flash')
+                response = model.generate_content(parts_to_send)
+                bot_reply = response.text
+            except:
+                try:
+                    # OPSI 2: Jika error, pakai Ban Serep (Versi Stabil)
+                    model = genai.GenerativeModel('gemini-1.5-flash')
+                    response = model.generate_content(parts_to_send)
+                    bot_reply = response.text
+                except:
+                    # OPSI 3: Jika masih error semua
+                    bot_reply = "Maaf Kak, sistem sedang sibuk sekali. Boleh coba tanya lagi dalam 1 menit? 🙏"
+
+            # Tampilkan Balasan
             st.write(bot_reply)
             
-            # --- FITUR TOMBOL WA OTOMATIS (CANGGIH) ---
-            # Jika AI mendeteksi user mau order, kita munculkan tombol
-            if "jadwal" in bot_reply.lower() or "whatsapp" in bot_reply.lower() or "wa" in bot_reply.lower():
+            # Simpan ke history
+            st.session_state.messages.append({"role": "assistant", "content": bot_reply})
+
+            # --- FITUR CANGGIH: TOMBOL WA OTOMATIS ---
+            # Jika AI mendeteksi kata kunci booking/jadwal/wa
+            if any(x in bot_reply.lower() for x in ["jadwal", "whatsapp", "wa", "booking"]):
                 st.info("👇 Klik tombol di bawah untuk lanjut ke WhatsApp Admin:")
                 
                 # Link WA Otomatis
-                no_wa = "6281234567890" # GANTI NOMOR INI
+                no_wa = "6281234567890" # GANTI DENGAN NOMOR HP KAMU (Format 628...)
                 pesan_wa = "Halo Admin Berkilau Clean, saya mau pesan jasa cuci (dari Chatbot)."
                 link = f"https://wa.me/{no_wa}?text={pesan_wa.replace(' ', '%20')}"
                 
                 st.link_button("📲 Lanjut Chat di WhatsApp", link)
-
-    except Exception as e:
-        st.error(f"Terjadi kesalahan: {e}")
