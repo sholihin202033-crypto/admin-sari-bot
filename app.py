@@ -1,44 +1,23 @@
 import streamlit as st
 import google.generativeai as genai
 from PIL import Image
-import urllib.parse # Untuk link WA canggih
+import urllib.parse 
 
 # --- KONFIGURASI HALAMAN ---
 st.set_page_config(page_title="Admin Sari - Berkilau Clean", page_icon="✨", layout="wide")
 
-# --- CSS VISUAL (SUPER CANTIK & RAPI) ---
+# --- CSS VISUAL (MODIFIKASI: Hapus style Popover, fokus ke Chat & Kolom) ---
 st.markdown("""
 <style>
     /* 1. KOTAK CHAT (INPUT) - GAYA KAPSUL */
     .stChatInput textarea {
         border-radius: 25px !important;
-        padding-left: 55px !important; /* Ruang untuk tombol + */
         padding-top: 12px !important;
         border: 1px solid #ddd !important;
         box-shadow: 0px 2px 5px rgba(0,0,0,0.05) !important;
     }
     
-    /* 2. TOMBOL (+) MENYATU DALAM KOTAK */
-    [data-testid="stPopover"] {
-        position: fixed !important;
-        bottom: 28px !important;
-        left: 20px !important;
-        z-index: 99999 !important;
-    }
-    [data-testid="stPopover"] > div > button {
-        background-color: transparent !important;
-        border: none !important;
-        color: #888 !important; /* Warna ikon abu */
-        font-size: 28px !important;
-        padding: 0 !important;
-        transition: 0.3s;
-    }
-    [data-testid="stPopover"] > div > button:hover {
-        color: #007bff !important; /* Biru saat disentuh */
-        transform: scale(1.1); /* Efek membesar dikit */
-    }
-
-    /* 3. GELEMBUNG CHAT (CHAT BUBBLES) */
+    /* 2. GELEMBUNG CHAT (CHAT BUBBLES) */
     /* User: Hijau Muda Lembut */
     [data-testid="stChatMessage"]:nth-child(odd) {
         background-color: #e8f5e9; 
@@ -56,7 +35,7 @@ st.markdown("""
         border: 1px solid #f0f0f0;
     }
 
-    /* 4. TOMBOL QUICK REPLY */
+    /* 3. TOMBOL QUICK REPLY */
     .stButton button {
         border-radius: 20px !important;
         border: 1px solid #e0e0e0 !important;
@@ -69,160 +48,169 @@ st.markdown("""
         background-color: #f5f5f5 !important;
         border-color: #bbb !important;
     }
+    
+    /* 4. KOLOM UPLOAD (Kanan) */
+    [data-testid="stFileUploader"] {
+        padding: 15px;
+        border: 1px dashed #ccc;
+        border-radius: 15px;
+        text-align: center;
+    }
 </style>
 """, unsafe_allow_html=True)
 
-# --- SIDEBAR (MENU) ---
+# --- SIDEBAR (MENU KIRI) ---
 with st.sidebar:
     st.image("https://cdn-icons-png.flaticon.com/512/2922/2922510.png", width=60)
     st.title("Berkilau Clean")
     st.info("Jasa Cuci Sofa, Kasur & Karpet")
-    
     st.divider()
-    
-    # Menu Harga Mengintip
     with st.expander("📋 Intip Daftar Harga"):
         st.markdown("""
         **Sofa:** 50rb - 60rb / dudukan
         **Kasur:** 150rb - 200rb / unit
         **Karpet:** 15rb / meter
         """)
-
     st.divider()
     st.write("📞 WA: 0857-2226-8247")
-    st.write("IG: @laundry.kamu")
-    
     if st.button("🗑️ Hapus Chat", use_container_width=True):
         st.session_state.messages = []
         st.rerun()
 
-# --- HEADER (GAMBAR SPANDUK) ---
+# --- HEADER ---
 st.image("https://img.freepik.com/free-vector/cleaning-service-banner-template_23-2148536647.jpg?w=1380", use_container_width=True)
-st.subheader("👋 Halo! Sari siap bantu cek harga.")
 
 # --- API KEY ---
 try:
     if "GOOGLE_API_KEY" in st.secrets:
         genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
     else:
+        st.warning("⚠️ Masukkan API Key di secrets.toml")
         st.stop()
 except:
     st.stop()
 
-# --- SOP ADMIN CANGGIH (SMART HANDOVER) ---
+# --- SOP ADMIN CANGGIH ---
 SOP_ADMIN = """
 PERAN: Kamu adalah Sari, Admin CS 'Berkilau Clean'.
 SIKAP: Ramah, santai, solutif, panggil 'Kak', pakai emoji (😊).
-
 TUGAS UTAMA:
-1. Jawab pertanyaan harga dan layanan DULU.
+1. Jawab pertanyaan harga dan layanan DULU. Analisis gambar jika ada.
 2. HANYA JIKA user bilang "Mau", "Setuju", "Booking", atau "Deal", BARU arahkan ke WhatsApp.
-
 DATA HARGA:
 - Cuci Sofa: 50rb/dudukan (Kain), 60rb/dudukan (Kulit). Min 2 dudukan.
 - Cuci Kasur: 200rb (Springbed), 150rb (Latex/Busa).
-- Promo: Order Senin-Rabu GRATIS Pengharum.
-
-ATURAN DEAL (PENTING):
-Jika user deal/mau booking, akhiri pesanmu dengan format rahasia ini:
+ATURAN DEAL:
+Jika user deal/mau booking, akhiri pesanmu dengan:
 "[DEAL_SUMMARY]: User mau pesan [Item] estimasi [Harga]."
 """
 
 # --- MEMORI CHAT ---
 if "messages" not in st.session_state:
-    st.session_state.messages = [{"role": "assistant", "content": "Halo Kak! Mau cuci apa hari ini? Boleh kirim fotonya juga ya 😊"}]
+    st.session_state.messages = [{"role": "assistant", "content": "Halo Kak! Mau cuci apa hari ini? Boleh upload fotonya di kolom samping ya 👉😊"}]
 
-# --- TOMBOL CEPAT (QUICK REPLIES) ---
-# Muncul jika chat masih kosong/baru mulai
-if len(st.session_state.messages) == 1:
-    st.caption("Pilihan Cepat:")
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        if st.button("🛋️ Cuci Sofa"):
-            st.session_state.messages.append({"role": "user", "content": "Berapa harga cuci sofa?"})
-            st.rerun()
-    with col2:
-        if st.button("🛏️ Cuci Kasur"):
-            st.session_state.messages.append({"role": "user", "content": "Berapa harga cuci kasur?"})
-            st.rerun()
-    with col3:
-        if st.button("📍 Lokasi"):
-            st.session_state.messages.append({"role": "user", "content": "Melayani area mana saja?"})
-            st.rerun()
+# --- LAYOUT KOLOM (UTAMA vs SAMPING) ---
+# Rasio [3, 1] artinya kolom chat 3x lebih lebar dari kolom gambar
+col_chat, col_image = st.columns([3, 1])
 
-# TAMPILKAN HISTORY
-for msg in st.session_state.messages:
-    with st.chat_message(msg["role"]):
-        st.write(msg["content"])
-
-st.write("") 
-st.write("") 
-
-# --- INPUT AREA (TOMBOL + DAN CHAT MENYATU) ---
-with st.popover("➕"):
-    st.caption("Kirim Foto Noda:")
-    uploaded_file = st.file_uploader("", type=["jpg", "jpeg", "png"], label_visibility="collapsed")
-
-prompt = st.chat_input("Ketik pesan...")
-
-# --- PROSES UTAMA ---
-if prompt or uploaded_file:
-    # 1. TAMPILKAN INPUT USER
-    with st.chat_message("user"):
-        if prompt: st.write(prompt)
-        if uploaded_file:
-            try:
-                img = Image.open(uploaded_file)
-                st.image(img, width=200, caption="Foto terkirim")
-            except: st.write("📁 Mengirim file...")
-
-    # Simpan History
-    txt = prompt if prompt else "[Mengirim Foto]"
-    if not st.session_state.messages or st.session_state.messages[-1]["content"] != txt:
-        st.session_state.messages.append({"role": "user", "content": txt})
-
-    # 2. PROSES AI
-    parts = [SOP_ADMIN]
+# --- 1. KOLOM SAMPING (GAMBAR/FILE) ---
+with col_image:
+    st.subheader("🖼️ Panel Foto")
+    st.caption("Upload foto noda/sofa disini:")
+    
+    # File Uploader ditaruh disini
+    uploaded_file = st.file_uploader("Pilih gambar...", type=["jpg", "jpeg", "png"], label_visibility="collapsed")
+    
     if uploaded_file:
-        try: parts.append(Image.open(uploaded_file))
+        img = Image.open(uploaded_file)
+        st.image(img, caption="Foto Terupload", use_container_width=True)
+        st.success("✅ Foto terbaca oleh AI")
+    else:
+        st.info("Belum ada foto.")
+
+# --- 2. KOLOM UTAMA (CHAT) ---
+with col_chat:
+    st.subheader("💬 Chat dengan Sari")
+    
+    # TOMBOL CEPAT (Hanya muncul jika chat baru mulai)
+    if len(st.session_state.messages) == 1:
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            if st.button("🛋️ Cuci Sofa"):
+                st.session_state.messages.append({"role": "user", "content": "Berapa harga cuci sofa?"})
+                st.rerun()
+        with col2:
+            if st.button("🛏️ Cuci Kasur"):
+                st.session_state.messages.append({"role": "user", "content": "Berapa harga cuci kasur?"})
+                st.rerun()
+        with col3:
+            if st.button("📍 Lokasi"):
+                st.session_state.messages.append({"role": "user", "content": "Melayani area mana saja?"})
+                st.rerun()
+
+    # TAMPILKAN HISTORY
+    for msg in st.session_state.messages:
+        with st.chat_message(msg["role"]):
+            st.write(msg["content"])
+
+# --- INPUT CHAT (Tetap di bawah) ---
+# Note: st.chat_input selalu menempel di bawah layar, tidak bisa dimasukkan ke dalam col_chat secara visual
+prompt = st.chat_input("Ketik pesan untuk Sari...")
+
+# --- PROSES AI ---
+if prompt:
+    # 1. Tampilkan Chat User
+    with col_chat:
+        with st.chat_message("user"):
+            st.write(prompt)
+    
+    # Simpan ke history
+    st.session_state.messages.append({"role": "user", "content": prompt})
+
+    # 2. Siapkan Data untuk AI
+    parts = [SOP_ADMIN]
+    
+    # Cek apakah ada gambar di kolom samping yang sedang aktif
+    if uploaded_file:
+        try:
+            parts.append(Image.open(uploaded_file))
+            # Tambahkan konteks jika user tidak mengetik detail tentang gambar
+            parts.append(f"User bertanya: {prompt}. (Lihat gambar yang diupload user di panel samping)")
         except: pass
-    if prompt: parts.append(prompt)
-    else: parts.append("Tolong analisis gambar ini dan berikan harga.")
+    else:
+        parts.append(prompt)
 
-    # 3. JAWABAN AI
-    bot_reply = ""
-    with st.chat_message("assistant"):
-        with st.spinner("Sari sedang mengetik..."):
-            try:
-                # Ban Serep System (Auto-Switch Model)
+    # 3. Jawaban AI
+    with col_chat: # Output AI muncul di kolom Chat
+        with st.chat_message("assistant"):
+            with st.spinner("Sari sedang mengetik..."):
                 try:
-                    model = genai.GenerativeModel('gemini-2.5-flash')
-                    response = model.generate_content(parts)
+                    # Model Fallback
+                    try:
+                        model = genai.GenerativeModel('gemini-2.5-flash')
+                        response = model.generate_content(parts)
+                    except:
+                        model = genai.GenerativeModel('gemini-1.5-flash')
+                        response = model.generate_content(parts)
+                    
                     bot_reply = response.text
-                except:
-                    model = genai.GenerativeModel('gemini-1.5-flash')
-                    response = model.generate_content(parts)
-                    bot_reply = response.text
-                
-                # Bersihkan kode rahasia dari tampilan
-                tampilan_user = bot_reply.replace("[DEAL_SUMMARY]:", "").strip()
-                st.write(tampilan_user)
-                st.session_state.messages.append({"role": "assistant", "content": tampilan_user})
-                
-                # CEK LOGIKA HANDOVER KE WA
-                if "[DEAL_SUMMARY]:" in bot_reply:
-                    # Ambil ringkasan
-                    ringkasan = bot_reply.split("[DEAL_SUMMARY]:")[1].strip()
                     
-                    st.success("✅ Siap Kak! Data sudah Sari catat. Lanjut ke WA ya:")
+                    # Bersihkan kode rahasia
+                    tampilan_user = bot_reply.replace("[DEAL_SUMMARY]:", "").strip()
+                    st.write(tampilan_user)
+                    st.session_state.messages.append({"role": "assistant", "content": tampilan_user})
                     
-                    # Buat Link WA Canggih
-                    no_wa = "6285722268247" # Nomor Admin
-                    pesan_awal = f"Halo Admin Berkilau Clean! 👋\nSaya mau booking dari Chatbot.\n\n*Ringkasan:*\n{ringkasan}\n\nMohon info jadwal ya!"
-                    pesan_encoded = urllib.parse.quote(pesan_awal)
-                    link_wa = f"https://wa.me/{no_wa}?text={pesan_encoded}"
-                    
-                    st.link_button("📲 LANJUT KE WHATSAPP (BOOKING)", link_wa, use_container_width=True)
+                    # LOGIKA WA
+                    if "[DEAL_SUMMARY]:" in bot_reply:
+                        ringkasan = bot_reply.split("[DEAL_SUMMARY]:")[1].strip()
+                        st.success("✅ Siap Kak! Data sudah Sari catat. Lanjut ke WA ya:")
+                        
+                        no_wa = "6285722268247"
+                        pesan_awal = f"Halo Admin! Saya mau booking.\n\n*Ringkasan:*\n{ringkasan}\n\nMohon info jadwal!"
+                        pesan_encoded = urllib.parse.quote(pesan_awal)
+                        link_wa = f"https://wa.me/{no_wa}?text={pesan_encoded}"
+                        
+                        st.link_button("📲 LANJUT KE WHATSAPP (BOOKING)", link_wa, use_container_width=True)
 
-            except Exception as e:
-                st.error("Maaf Kak, jaringan sibuk. Coba tanya lagi ya 🙏")
+                except Exception as e:
+                    st.error(f"Maaf Kak, ada gangguan teknis. Error: {e}")
