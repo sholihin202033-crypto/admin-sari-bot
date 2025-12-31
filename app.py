@@ -3,85 +3,104 @@ import google.generativeai as genai
 from PIL import Image
 
 # --- KONFIGURASI HALAMAN ---
-st.set_page_config(page_title="Admin Sari", page_icon="✨", layout="wide")
+st.set_page_config(page_title="Admin Sari - Berkilau Clean", page_icon="✨", layout="wide")
 
-# --- CSS KHUSUS (AGAR TOMBOL MASUK KE DALAM KOTAK CHAT) ---
+# --- CSS "CANTIK & MODERN" ---
 st.markdown("""
 <style>
-    /* 1. MENGATUR KOTAK KETIK (INPUT) */
+    /* 1. KOTAK CHAT (INPUT) - GAYA WHATSAPP */
     .stChatInput textarea {
-        border-radius: 25px !important; /* Membuat sudut bulat */
-        padding-left: 50px !important;  /* MEMBUAT RUANG KOSONG DI KIRI DALAM */
-        padding-top: 10px !important;
-        padding-bottom: 10px !important;
-        border: 1px solid #ccc !important; /* Garis pinggir abu halus */
+        border-radius: 25px !important;
+        padding-left: 50px !important; 
+        padding-top: 12px !important;
+        border: 1px solid #ddd !important;
     }
 
-    /* 2. MENGATUR POSISI TOMBOL (+) AGAR MASUK KE DALAM RUANG KOSONG TADI */
+    /* 2. TOMBOL (+) DI DALAM KOTAK */
     [data-testid="stPopover"] {
         position: fixed !important;
-        bottom: 28px !important; /* Atur ketinggian agar pas di tengah kotak input */
-        left: 18px !important;   /* Geser agar masuk ke sisi kiri kotak input */
-        z-index: 99999 !important; /* Pastikan tombol ada di lapisan paling atas */
-        width: 40px !important;
-        height: 40px !important;
+        bottom: 28px !important;
+        left: 18px !important;
+        z-index: 99999 !important;
     }
-
-    /* 3. MENGUBAH TAMPILAN TOMBOL (+) MENJADI IKON TRANSPARAN */
     [data-testid="stPopover"] > div > button {
-        background-color: transparent !important; /* Latar bening biar menyatu */
-        border: none !important;       /* Hilangkan kotak tombol */
-        color: #555 !important;        /* Warna ikon abu gelap */
-        font-size: 28px !important;    /* Ukuran ikon */
+        background-color: transparent !important;
+        border: none !important;
+        color: #888 !important;
+        font-size: 28px !important;
         padding: 0 !important;
-        width: 100% !important;
-        height: 100% !important;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: none !important;
     }
-    
-    /* Efek saat tombol ditekan */
     [data-testid="stPopover"] > div > button:hover {
-        color: #000 !important;
-        background-color: rgba(0,0,0,0.05) !important;
-        border-radius: 50% !important;
-    }
-    
-    /* Efek saat tombol aktif (diklik) */
-    [data-testid="stPopover"] > div > button:active {
-        background-color: rgba(0,0,0,0.1) !important;
+        color: #007bff !important; /* Warna biru saat disentuh */
     }
 
-    /* 4. MENGHILANGKAN EFEK GARIS BIRU SAAT MENGETIK */
-    .stChatInput textarea:focus {
-        box-shadow: none !important;
-        border-color: #888 !important;
+    /* 3. TOMBOL "QUICK REPLY" (PILIHAN CEPAT) */
+    .stButton button {
+        border-radius: 20px !important;
+        border: 1px solid #eee !important;
+        background-color: #f8f9fa !important;
+        color: #333 !important;
+        font-size: 14px !important;
+        padding: 5px 15px !important;
+        transition: 0.3s;
     }
-    
-    /* 5. MENYEMBUNYIKAN HEADER BAWAAN POP-OVER BIAR BERSIH */
-    div[data-testid="stPopoverBody"] {
-        border-radius: 15px !important;
+    .stButton button:hover {
+        background-color: #e2e6ea !important;
+        border-color: #adb5bd !important;
     }
 
+    /* 4. HEADER RAPI */
+    .main-header {
+        font-size: 24px;
+        font-weight: bold;
+        color: #2c3e50;
+        margin-bottom: 5px;
+    }
+    .sub-header {
+        font-size: 16px;
+        color: #7f8c8d;
+        margin-bottom: 20px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
 # --- SIDEBAR (MENU) ---
 with st.sidebar:
-    st.image("https://cdn-icons-png.flaticon.com/512/2922/2922510.png", width=80) 
-    st.title("Berkilau Clean")
+    st.title("Berkilau Clean ✨")
+    st.info("Jasa Cuci Sofa, Kasur & Karpet (Home Service)")
+    
+    st.divider()
+    
+    # Menu Harga Mengintip (Accordion)
+    with st.expander("📋 Lihat Daftar Harga"):
+        st.markdown("""
+        **Sofa:**
+        - Kain: 50rb/dudukan
+        - Kulit: 60rb/dudukan
+        
+        **Kasur:**
+        - Single: 150rb
+        - Queen/King: 200rb
+        
+        **Karpet:**
+        - Permeter: 15rb
+        """)
+
     st.divider()
     st.write("📞 WA: 0857-2226-8247")
     st.write("IG: @laundry.kamu")
-    if st.button("🗑️ Hapus Chat"):
+    
+    if st.button("🗑️ Hapus Chat", use_container_width=True):
         st.session_state.messages = []
         st.rerun()
 
-# --- UTAMA ---
-st.title("Admin Sari ✨")
-st.write("Jasa Cuci Sofa, Kasur & Karpet (24 Jam)")
+# --- BAGIAN UTAMA ---
+
+# Header Cantik (Bisa ganti URL gambar spanduk sendiri nanti)
+st.image("https://img.freepik.com/free-vector/cleaning-service-banner-template_23-2148536647.jpg?w=1380", use_container_width=True)
+
+st.markdown('<div class="main-header">Halo! Sari di sini 👋</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-header">Asisten pintar yang siap bantu cek harga & jadwal cuci.</div>', unsafe_allow_html=True)
 
 # --- API KEY ---
 try:
@@ -92,7 +111,7 @@ try:
 except:
     st.stop()
 
-# --- SOP ---
+# --- SOP ADMIN ---
 SOP_ADMIN = """
 PERAN: Kamu Admin Sari (Berkilau Clean).
 SIKAP: Ramah, santai, pakai emoji 😊.
@@ -104,73 +123,84 @@ TUJUAN: Jawab harga & arahkan ke WhatsApp.
 
 # --- MEMORI CHAT ---
 if "messages" not in st.session_state:
-    st.session_state.messages = [{"role": "assistant", "content": "Halo Kak! Mau cuci apa? Boleh kirim foto nodanya ya 😊"}]
+    st.session_state.messages = [{"role": "assistant", "content": "Halo Kak! Mau dibantu cuci apa hari ini? 😊"}]
+
+# --- FITUR TOMBOL CEPAT (QUICK REPLIES) ---
+# Ini agar customer tidak capek ngetik
+if len(st.session_state.messages) == 1: # Hanya muncul di awal chat
+    st.write("Pilihan Cepat:")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        if st.button("🛋️ Cuci Sofa"):
+            st.session_state.messages.append({"role": "user", "content": "Berapa harga cuci sofa?"})
+            st.rerun()
+    with col2:
+        if st.button("🛏️ Cuci Kasur"):
+            st.session_state.messages.append({"role": "user", "content": "Berapa harga cuci kasur?"})
+            st.rerun()
+    with col3:
+        if st.button("📍 Lokasi"):
+            st.session_state.messages.append({"role": "user", "content": "Melayani area mana saja?"})
+            st.rerun()
 
 # TAMPILKAN HISTORY
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
+
 st.write("") 
-st.write("") # Spasi bawah biar chat tidak ketutup
+st.write("") 
 
-# --- BAGIAN PENTING: TOMBOL MENYATU DENGAN CHAT ---
-
-# 1. TOMBOL UPLOAD (+)
-# Berkat CSS di atas, tombol ini akan dipaksa masuk ke dalam kotak chat sebelah kiri
+# --- INPUT CHAT & TOMBOL (+) MENYATU ---
 with st.popover("➕"):
-    st.caption("Pilih Gambar:")
+    st.caption("Upload Foto Noda:")
     uploaded_file = st.file_uploader("", type=["jpg", "jpeg", "png"], label_visibility="collapsed")
 
-# 2. KOLOM CHAT
 prompt = st.chat_input("Ketik pesan...")
 
 # --- LOGIKA ---
 if prompt or uploaded_file:
-    # INPUT USER
+    # USER INPUT
     with st.chat_message("user"):
         if prompt: st.write(prompt)
         if uploaded_file:
             try:
                 img = Image.open(uploaded_file)
                 st.image(img, width=200)
-            except:
-                st.write(f"📁 {uploaded_file.name}")
+            except: st.write(f"📁 File")
 
-    # HISTORY
-    txt = prompt if prompt else "[Kirim File]"
+    # SIMPAN HISTORY
+    txt = prompt if prompt else "[Kirim Foto]"
     if not st.session_state.messages or st.session_state.messages[-1]["content"] != txt:
         st.session_state.messages.append({"role": "user", "content": txt})
 
-    # PROSES AI
+    # AI PROCESS
     parts = [SOP_ADMIN]
     if uploaded_file:
         try: parts.append(Image.open(uploaded_file))
         except: pass
     if prompt: parts.append(prompt)
-    else: parts.append("Analisis gambar ini.")
+    else: parts.append("Analisis ini.")
 
-    # JAWABAN AI
+    # AI REPLY
     if st.session_state.messages[-1]["role"] != "assistant":
         with st.chat_message("assistant"):
             with st.spinner("..."):
                 try:
-                    # Coba Mesin Terbaru
                     model = genai.GenerativeModel('gemini-2.5-flash')
                     response = model.generate_content(parts)
                     reply = response.text
                 except:
                     try:
-                        # Coba Mesin Stabil
                         model = genai.GenerativeModel('gemini-1.5-flash')
                         response = model.generate_content(parts)
                         reply = response.text
                     except:
-                        reply = "Maaf Kak, error jaringan. Coba lagi ya 🙏"
+                        reply = "Maaf Kak, jaringan sibuk. Coba lagi ya 🙏"
                 
                 st.write(reply)
                 st.session_state.messages.append({"role": "assistant", "content": reply})
                 
-                # TOMBOL WA
                 if "wa" in reply.lower() or "booking" in reply.lower():
                     link = "https://wa.me/6285722268247?text=Halo%20Admin%20Berkilau"
-                    st.link_button("📲 Chat WhatsApp", link)
+                    st.link_button("📲 Chat WhatsApp (Booking)", link, use_container_width=True)
