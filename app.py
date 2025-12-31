@@ -5,61 +5,49 @@ from PIL import Image
 # --- KONFIGURASI HALAMAN ---
 st.set_page_config(page_title="Admin Sari - Berkilau Clean", page_icon="✨", layout="wide")
 
-# --- CSS KHUSUS (GEMINI STYLE) ---
-# Ini rahasianya agar tampilan jadi bulat/lonjong seperti aplikasi HP
+# --- CSS TAMPILAN (GEMINI STYLE - VERSI RAPI) ---
 st.markdown("""
 <style>
-    /* 1. Mengubah kotak ketik (Chat Input) jadi Lonjong/Kapsul */
+    /* 1. Merapikan Kotak Chat jadi Lonjong (Kapsul) */
     .stChatInput textarea {
-        border-radius: 25px !important; /* Membuat sudut tumpul */
-        border: 1px solid #c0c0c0; /* Garis pinggir halus */
-        padding-left: 20px;
-        padding-top: 10px;
-        padding-bottom: 10px;
+        border-radius: 25px !important;
+        border: 1px solid #e0e0e0 !important; /* Garis abu halus */
+        padding-left: 15px;
     }
     
-    /* 2. Mengubah tombol kirim (Send) jadi lebih pas */
-    .stChatInput button {
-        border-radius: 50%;
-    }
-
-    /* 3. Mengubah Tombol Tambah (+) jadi Bulat Sempurna */
-    [data-testid="stPopover"] > div > button {
-        border-radius: 50% !important; /* Lingkaran penuh */
-        width: 50px;
-        height: 50px;
-        border: 1px solid #ddd;
-        background-color: #f0f2f6;
-        font-size: 24px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-top: 8px; /* Supaya sejajar dengan kotak chat */
-    }
-
-    /* Menghilangkan border fokus biru yang jelek */
+    /* 2. Menghilangkan fokus warna aneh */
     .stChatInput textarea:focus {
-        border-color: #4CAF50 !important;
-        box-shadow: 0 0 5px rgba(76, 175, 80, 0.5) !important;
+        border-color: #777 !important;
+        box-shadow: none !important;
+    }
+
+    /* 3. Merapikan tampilan pesan chat */
+    .stChatMessage {
+        border-radius: 15px;
+        padding: 10px;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# --- SIDEBAR (MENU SAMPING) ---
+# --- SIDEBAR (MENU & UPLOAD) ---
 with st.sidebar:
-    st.image("https://cdn-icons-png.flaticon.com/512/2922/2922510.png", width=100)
+    st.image("https://cdn-icons-png.flaticon.com/512/2922/2922510.png", width=80) 
     st.title("Berkilau Clean")
-    st.write("Jasa kebersihan profesional: Sofa, Kasur, & Karpet.")
+    st.write("Jasa kebersihan profesional.")
     
     st.divider()
     
-    st.subheader("📞 Kontak Darurat")
-    st.write("WA: 0857-2226-8247")
+    # --- FITUR UPLOAD (DIPINDAH KE SINI BIAR RAPI) ---
+    st.subheader("📸 Kirim Foto Noda")
+    st.info("Mau cek harga via foto? Upload di sini ya Kak!")
+    uploaded_file = st.file_uploader("", type=["jpg", "jpeg", "png"], label_visibility="collapsed")
+    
+    st.divider()
+    
+    st.write("📞 WA: 0857-2226-8247")
     st.write("IG: @laundry.kamu")
     
-    st.divider()
-    
-    if st.button("🔄 Mulai Chat Baru"):
+    if st.button("🔄 Reset Chat"):
         st.session_state.messages = [] 
         st.rerun() 
 
@@ -111,19 +99,9 @@ for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
 
-# --- INPUT USER (GAYA GEMINI: TOMBOL BULAT + KOTAK LONJONG) ---
-# Kita atur kolom agar tombol + ada di kiri kotak chat
-col_plus, col_chat = st.columns([1, 12]) 
-
-with col_plus:
-    # Tombol + Bulat
-    with st.popover("➕"):
-        st.write("Lampirkan File:")
-        uploaded_file = st.file_uploader("", type=["jpg", "jpeg", "png", "pdf"], label_visibility="collapsed")
-
-with col_chat:
-    # Kotak Chat (Akan jadi lonjong karena CSS di atas)
-    prompt = st.chat_input("Ketik pesan atau tanya harga...")
+# --- INPUT USER (CLEAN STYLE) ---
+# Input chat tetap di bawah, bersih tanpa gangguan tombol lain
+prompt = st.chat_input("Ketik pesan atau tanya harga...")
 
 # --- PROSES CHAT ---
 if prompt or uploaded_file:
@@ -137,9 +115,16 @@ if prompt or uploaded_file:
             except:
                 st.write(f"📄 Mengirim file: {uploaded_file.name}")
     
-    # Simpan history
-    msg_content = prompt if prompt else f"[Mengirim file: {uploaded_file.name if uploaded_file else 'Foto'}]"
-    st.session_state.messages.append({"role": "user", "content": msg_content})
+    # Simpan history (Cek agar tidak double input saat upload)
+    # Trik: Kita hanya simpan history jika ini adalah interaksi baru
+    current_content = prompt if prompt else f"[Mengirim file: {uploaded_file.name}]"
+    
+    # Cek pesan terakhir agar tidak duplikat di history visual
+    if len(st.session_state.messages) > 0:
+        if st.session_state.messages[-1]["content"] != current_content:
+            st.session_state.messages.append({"role": "user", "content": current_content})
+    else:
+        st.session_state.messages.append({"role": "user", "content": current_content})
 
     # 2. Siapkan Data
     parts_to_send = [SOP_ADMIN]
@@ -148,34 +133,36 @@ if prompt or uploaded_file:
             img_data = Image.open(uploaded_file)
             parts_to_send.append(img_data)
         except:
-            parts_to_send.append(f"User mengirim file: {uploaded_file.name}")
+            pass
     
     if prompt: parts_to_send.append(prompt)
     else: parts_to_send.append("Analisis gambar/file ini.")
 
     # 3. Kirim ke AI (Anti-Error System)
     bot_reply = ""
-    with st.chat_message("assistant"):
-        with st.spinner("Sari sedang mengetik..."):
-            try:
-                model = genai.GenerativeModel('gemini-2.5-flash')
-                response = model.generate_content(parts_to_send)
-                bot_reply = response.text
-            except:
+    # Cek apakah pesan terakhir adalah dari asisten? Jika ya, jangan jawab lagi (mencegah loop)
+    if st.session_state.messages[-1]["role"] != "assistant":
+        with st.chat_message("assistant"):
+            with st.spinner("Sari sedang mengetik..."):
                 try:
-                    model = genai.GenerativeModel('gemini-1.5-flash')
+                    model = genai.GenerativeModel('gemini-2.5-flash')
                     response = model.generate_content(parts_to_send)
                     bot_reply = response.text
                 except:
-                    bot_reply = "Maaf Kak, sistem sibuk. Coba lagi ya 🙏"
+                    try:
+                        model = genai.GenerativeModel('gemini-1.5-flash')
+                        response = model.generate_content(parts_to_send)
+                        bot_reply = response.text
+                    except:
+                        bot_reply = "Maaf Kak, sistem sibuk. Coba lagi ya 🙏"
 
-            st.write(bot_reply)
-            st.session_state.messages.append({"role": "assistant", "content": bot_reply})
+                st.write(bot_reply)
+                st.session_state.messages.append({"role": "assistant", "content": bot_reply})
 
-            # Tombol WA Otomatis
-            if any(x in bot_reply.lower() for x in ["jadwal", "whatsapp", "wa", "booking"]):
-                st.info("👇 Klik tombol untuk lanjut ke WhatsApp:")
-                no_wa = "6285722268247"
-                pesan_wa = "Halo Admin Berkilau Clean, mau pesan jasa cuci (dari Chatbot)."
-                link = f"https://wa.me/{no_wa}?text={pesan_wa.replace(' ', '%20')}"
-                st.link_button("📲 Lanjut ke WhatsApp", link) 
+                # Tombol WA Otomatis
+                if any(x in bot_reply.lower() for x in ["jadwal", "whatsapp", "wa", "booking"]):
+                    st.info("👇 Klik tombol untuk lanjut ke WhatsApp:")
+                    no_wa = "6285722268247"
+                    pesan_wa = "Halo Admin Berkilau Clean, mau pesan jasa cuci (dari Chatbot)."
+                    link = f"https://wa.me/{no_wa}?text={pesan_wa.replace(' ', '%20')}"
+                    st.link_button("📲 Lanjut ke WhatsApp", link)
