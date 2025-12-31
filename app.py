@@ -5,73 +5,67 @@ from PIL import Image
 # --- KONFIGURASI HALAMAN ---
 st.set_page_config(page_title="Admin Sari - Berkilau Clean", page_icon="✨", layout="wide")
 
-# --- CSS "JURUS RAHASIA" (UNTUK MENYATUKAN TOMBOL & CHAT) ---
+# --- CSS KHUSUS (GEMINI STYLE) ---
+# Ini rahasianya agar tampilan jadi bulat/lonjong seperti aplikasi HP
 st.markdown("""
 <style>
-    /* 1. MEMBUAT TOMBOL (+) MELAYANG DI POJOK KIRI BAWAH */
-    [data-testid="stPopover"] {
-        position: fixed;
-        bottom: 25px; /* Jarak dari bawah layar */
-        left: 15px;   /* Jarak dari kiri layar */
-        z-index: 1000; /* Agar tombol selalu di paling depan */
+    /* 1. Mengubah kotak ketik (Chat Input) jadi Lonjong/Kapsul */
+    .stChatInput textarea {
+        border-radius: 25px !important; /* Membuat sudut tumpul */
+        border: 1px solid #c0c0c0; /* Garis pinggir halus */
+        padding-left: 20px;
+        padding-top: 10px;
+        padding-bottom: 10px;
+    }
+    
+    /* 2. Mengubah tombol kirim (Send) jadi lebih pas */
+    .stChatInput button {
+        border-radius: 50%;
     }
 
-    /* 2. MENGUBAH BENTUK TOMBOL (+) JADI BULAT */
+    /* 3. Mengubah Tombol Tambah (+) jadi Bulat Sempurna */
     [data-testid="stPopover"] > div > button {
-        border-radius: 50%;
-        width: 45px;
-        height: 45px;
+        border-radius: 50% !important; /* Lingkaran penuh */
+        width: 50px;
+        height: 50px;
+        border: 1px solid #ddd;
         background-color: #f0f2f6;
-        border: 2px solid #ddd;
         font-size: 24px;
         display: flex;
         align-items: center;
         justify-content: center;
-        box-shadow: 0px 4px 6px rgba(0,0,0,0.1); /* Efek bayangan */
+        margin-top: 8px; /* Supaya sejajar dengan kotak chat */
     }
 
-    /* 3. MENGGESER KOLOM KETIK SUPAYA TIDAK KETABRAK TOMBOL (+) */
-    .stChatInput textarea {
-        padding-left: 60px !important; /* Memberi ruang kosong di kiri untuk tombol + */
-        border-radius: 30px !important; /* Membuat kotak chat lonjong */
-        border: 1px solid #ccc !important;
-    }
-    
-    /* 4. MENGHILANGKAN GARIS FOKUS YANG MENGGANGGU */
+    /* Menghilangkan border fokus biru yang jelek */
     .stChatInput textarea:focus {
-        box-shadow: none !important;
-        border-color: #777 !important;
-    }
-    
-    /* 5. MERAPIKAN TAMPILAN PESAN */
-    .stChatMessage {
-        border-radius: 15px;
-        margin-bottom: 10px;
+        border-color: #4CAF50 !important;
+        box-shadow: 0 0 5px rgba(76, 175, 80, 0.5) !important;
     }
 </style>
 """, unsafe_allow_html=True)
 
 # --- SIDEBAR (MENU SAMPING) ---
 with st.sidebar:
-    st.image("https://cdn-icons-png.flaticon.com/512/2922/2922510.png", width=80) 
+    st.image("https://cdn-icons-png.flaticon.com/512/2922/2922510.png", width=100)
     st.title("Berkilau Clean")
-    st.write("Jasa kebersihan profesional.")
+    st.write("Jasa kebersihan profesional: Sofa, Kasur, & Karpet.")
     
     st.divider()
     
-    st.subheader("📞 Kontak Kami")
-    st.write("WA: **0857-2226-8247**")
-    st.write("IG: **@laundry.kamu**") # <-- SUDAH DITAMBAHKAN
+    st.subheader("📞 Kontak Darurat")
+    st.write("WA: 0857-2226-8247")
+    st.write("IG: @laundry.kamu")
     
     st.divider()
     
-    if st.button("🔄 Hapus Chat"):
+    if st.button("🔄 Mulai Chat Baru"):
         st.session_state.messages = [] 
         st.rerun() 
 
-# --- HEADER UTAMA ---
-st.title("✨ Admin Sari")
-st.caption("Online 24 Jam • Balas Cepat • Solutif")
+# --- JUDUL UTAMA ---
+st.title("✨ Chat dengan Admin Sari")
+st.write("Sari siap bantu cek harga & jadwal!")
 
 # --- KUNCI API ---
 try:
@@ -109,32 +103,31 @@ INSTRUKSI KHUSUS:
 # --- MEMORI CHAT ---
 if "messages" not in st.session_state:
     st.session_state.messages = [
-        {"role": "assistant", "content": "Halo Kak! Sari di sini. Ada yang bisa dibantu? Boleh kirim foto noda di sofa/kasurnya ya 😊"}
+        {"role": "assistant", "content": "Halo Kak! Saya Sari. Ada yang bisa dibantu? Boleh kirim foto sofanya biar saya cek ya 😊"}
     ]
 
-# TAMPILKAN CHAT (SEJARAH)
-# Kita tambahkan wadah kosong di bawah agar chat terakhir tidak tertutup tombol
+# TAMPILKAN CHAT
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
-st.write("") # Spasi kosong tambahan di bawah
-st.write("") 
 
-# --- AREA INPUT (TOMBOL + DAN CHAT MENYATU) ---
+# --- INPUT USER (GAYA GEMINI: TOMBOL BULAT + KOTAK LONJONG) ---
+# Kita atur kolom agar tombol + ada di kiri kotak chat
+col_plus, col_chat = st.columns([1, 12]) 
 
-# 1. TOMBOL UPLOAD (+)
-# Berkat CSS di atas, tombol ini akan 'terbang' ke pojok kiri bawah layar
-with st.popover("➕"):
-    st.write("Lampirkan File:")
-    uploaded_file = st.file_uploader("", type=["jpg", "jpeg", "png"], label_visibility="collapsed")
+with col_plus:
+    # Tombol + Bulat
+    with st.popover("➕"):
+        st.write("Lampirkan File:")
+        uploaded_file = st.file_uploader("", type=["jpg", "jpeg", "png", "pdf"], label_visibility="collapsed")
 
-# 2. KOLOM CHAT (INPUT)
-# Ini otomatis ada di paling bawah (Sticky Bottom)
-prompt = st.chat_input("Ketik pesan...")
+with col_chat:
+    # Kotak Chat (Akan jadi lonjong karena CSS di atas)
+    prompt = st.chat_input("Ketik pesan atau tanya harga...")
 
 # --- PROSES CHAT ---
 if prompt or uploaded_file:
-    # A. TAMPILKAN PESAN USER
+    # 1. Tampilkan Pesan User
     with st.chat_message("user"):
         if prompt: st.write(prompt)
         if uploaded_file: 
@@ -142,50 +135,47 @@ if prompt or uploaded_file:
                 img = Image.open(uploaded_file)
                 st.image(img, caption="Foto dikirim", width=250)
             except:
-                st.write(f"📄 Mengirim file")
+                st.write(f"📄 Mengirim file: {uploaded_file.name}")
     
-    # Simpan ke memori (Hanya jika beda dengan terakhir untuk mencegah duplikat visual)
-    msg_content = prompt if prompt else "[Mengirim foto]"
-    if not st.session_state.messages or st.session_state.messages[-1]["content"] != msg_content:
-        st.session_state.messages.append({"role": "user", "content": msg_content})
+    # Simpan history
+    msg_content = prompt if prompt else f"[Mengirim file: {uploaded_file.name if uploaded_file else 'Foto'}]"
+    st.session_state.messages.append({"role": "user", "content": msg_content})
 
-    # B. SIAPKAN DATA KE AI
+    # 2. Siapkan Data
     parts_to_send = [SOP_ADMIN]
     if uploaded_file:
         try:
             img_data = Image.open(uploaded_file)
             parts_to_send.append(img_data)
-        except: pass
+        except:
+            parts_to_send.append(f"User mengirim file: {uploaded_file.name}")
     
     if prompt: parts_to_send.append(prompt)
-    else: parts_to_send.append("Analisis gambar ini.")
+    else: parts_to_send.append("Analisis gambar/file ini.")
 
-    # C. AI MENJAWAB (ANTI-ERROR)
-    # Cek agar AI tidak menjawab dirinya sendiri
-    if st.session_state.messages[-1]["role"] != "assistant":
-        with st.chat_message("assistant"):
-            with st.spinner("Sari sedang mengetik..."):
+    # 3. Kirim ke AI (Anti-Error System)
+    bot_reply = ""
+    with st.chat_message("assistant"):
+        with st.spinner("Sari sedang mengetik..."):
+            try:
+                model = genai.GenerativeModel('gemini-2.5-flash')
+                response = model.generate_content(parts_to_send)
+                bot_reply = response.text
+            except:
                 try:
-                    # Coba Mesin 1
-                    model = genai.GenerativeModel('gemini-2.5-flash')
+                    model = genai.GenerativeModel('gemini-1.5-flash')
                     response = model.generate_content(parts_to_send)
                     bot_reply = response.text
                 except:
-                    try:
-                        # Coba Mesin 2 (Cadangan)
-                        model = genai.GenerativeModel('gemini-1.5-flash')
-                        response = model.generate_content(parts_to_send)
-                        bot_reply = response.text
-                    except:
-                        bot_reply = "Maaf Kak, sinyal Sari lagi gangguan. Coba tanya lagi ya 🙏"
+                    bot_reply = "Maaf Kak, sistem sibuk. Coba lagi ya 🙏"
 
-                st.write(bot_reply)
-                st.session_state.messages.append({"role": "assistant", "content": bot_reply})
+            st.write(bot_reply)
+            st.session_state.messages.append({"role": "assistant", "content": bot_reply})
 
-                # LINK WHATSAPP OTOMATIS
-                if any(x in bot_reply.lower() for x in ["jadwal", "whatsapp", "wa", "booking"]):
-                    st.info("👇 Lanjut ke WhatsApp Admin:")
-                    no_wa = "6285722268247"
-                    pesan_wa = "Halo Admin Berkilau Clean, mau pesan jasa cuci (dari Chatbot)."
-                    link = f"https://wa.me/{no_wa}?text={pesan_wa.replace(' ', '%20')}"
-                    st.link_button("📲 Chat WhatsApp", link)
+            # Tombol WA Otomatis
+            if any(x in bot_reply.lower() for x in ["jadwal", "whatsapp", "wa", "booking"]):
+                st.info("👇 Klik tombol untuk lanjut ke WhatsApp:")
+                no_wa = "6285722268247"
+                pesan_wa = "Halo Admin Berkilau Clean, mau pesan jasa cuci (dari Chatbot)."
+                link = f"https://wa.me/{no_wa}?text={pesan_wa.replace(' ', '%20')}"
+                st.link_button("📲 Lanjut ke WhatsApp", link)
