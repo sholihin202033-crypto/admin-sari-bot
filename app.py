@@ -9,7 +9,13 @@ st.set_page_config(page_title="Admin Sari - Berkilau Clean", page_icon="✨", la
 st.markdown("""
 <style>
     .stChatMessage {border-radius: 15px; padding: 10px;}
-    .stButton button {width: 100%; border-radius: 20px;}
+    .stButton button {border-radius: 20px;}
+    /* Mengatur tombol + biar rapi */
+    [data-testid="stPopover"] > div > button {
+        border: 2px solid #eee;
+        font-size: 20px;
+        padding: 0px 10px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -22,8 +28,8 @@ with st.sidebar:
     st.divider()
     
     st.subheader("📞 Kontak Darurat")
-    st.write("WA: 0812-3456-7890") # Ganti dengan nomor aslimu nanti
-    st.write("IG: @berkilau.clean")
+    st.write("WA: 0857-2226-8247") # NOMOR WA BARU
+    st.write("IG: @laundry.kamu") # Edit IG di sini nanti
     
     st.divider()
     
@@ -80,13 +86,17 @@ for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
 
-# --- INPUT USER (GAMBAR & TEKS) ---
-col1, col2 = st.columns([1, 4])
-with col1:
-    with st.popover("📸 Upload Foto"):
-        uploaded_file = st.file_uploader("Pilih gambar...", type=["jpg", "jpeg", "png"])
+# --- INPUT USER (TOMBOL + DAN CHAT) ---
+# Kita bagi kolom: Kecil untuk tombol +, Besar untuk chat
+col_plus, col_chat = st.columns([1, 8])
 
-with col2:
+with col_plus:
+    # Tombol Popover (Menu Muncul) dengan ikon Tambah (+)
+    with st.popover("➕"):
+        st.write("Lampirkan File:")
+        uploaded_file = st.file_uploader("", type=["jpg", "jpeg", "png", "pdf"], label_visibility="collapsed")
+
+with col_chat:
     prompt = st.chat_input("Ketik pesan...")
 
 # --- PROSES CHAT ---
@@ -95,31 +105,43 @@ if prompt or uploaded_file:
     with st.chat_message("user"):
         if prompt: st.write(prompt)
         if uploaded_file: 
-            img = Image.open(uploaded_file)
-            st.image(img, caption="Foto dikirim", width=250)
+            try:
+                img = Image.open(uploaded_file)
+                st.image(img, caption="Foto dikirim", width=250)
+            except:
+                st.write(f"📄 Mengirim file: {uploaded_file.name}")
     
     # Simpan ke history
-    msg_content = prompt if prompt else "[Mengirim foto]"
+    msg_content = prompt if prompt else f"[Mengirim file: {uploaded_file.name if uploaded_file else 'Foto'}]"
     st.session_state.messages.append({"role": "user", "content": msg_content})
 
     # 2. SIAPKAN DATA UNTUK DIKIRIM KE AI
     parts_to_send = [SOP_ADMIN]
-    if uploaded_file: parts_to_send.append(Image.open(uploaded_file))
+    
+    # Cek apakah file adalah gambar valid untuk AI
+    if uploaded_file:
+        try:
+            img_data = Image.open(uploaded_file)
+            parts_to_send.append(img_data)
+        except:
+            # Jika file bukan gambar (misal PDF), kirim nama filenya saja ke AI
+            parts_to_send.append(f"User mengirim file: {uploaded_file.name}")
+
     if prompt: parts_to_send.append(prompt)
-    else: parts_to_send.append("Analisis gambar ini dan tawarkan jasa pembersihan yang cocok.")
+    else: parts_to_send.append("Analisis gambar/file ini dan tawarkan jasa pembersihan yang cocok.")
 
     # 3. KIRIM KE AI (DENGAN SISTEM BAN SEREP / AUTO-FIX)
     bot_reply = ""
     with st.chat_message("assistant"):
         with st.spinner("Sari sedang mengetik..."):
             try:
-                # OPSI 1: Coba pakai Mesin Utama (Paling Baru)
+                # OPSI 1: Coba pakai Mesin Utama
                 model = genai.GenerativeModel('gemini-2.5-flash')
                 response = model.generate_content(parts_to_send)
                 bot_reply = response.text
             except:
                 try:
-                    # OPSI 2: Jika error, pakai Ban Serep (Versi Stabil)
+                    # OPSI 2: Jika error, pakai Ban Serep
                     model = genai.GenerativeModel('gemini-1.5-flash')
                     response = model.generate_content(parts_to_send)
                     bot_reply = response.text
@@ -138,9 +160,9 @@ if prompt or uploaded_file:
             if any(x in bot_reply.lower() for x in ["jadwal", "whatsapp", "wa", "booking"]):
                 st.info("👇 Klik tombol di bawah untuk lanjut ke WhatsApp Admin:")
                 
-                # Link WA Otomatis
-                no_wa = "6281234567890" # GANTI DENGAN NOMOR HP KAMU (Format 628...)
+                # Link WA Otomatis (NOMOR BARU)
+                no_wa = "6285722268247" # SUDAH DIPERBARUI
                 pesan_wa = "Halo Admin Berkilau Clean, saya mau pesan jasa cuci (dari Chatbot)."
                 link = f"https://wa.me/{no_wa}?text={pesan_wa.replace(' ', '%20')}"
                 
-                st.link_button("📲 Lanjut Chat di WhatsApp", link)
+                st.link_button("📲 Lanjut Chat di WhatsApp", link) 
